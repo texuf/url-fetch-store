@@ -1,17 +1,16 @@
-from flask import Flask, session, render_template, jsonify#, request
+from flask import Flask, session, render_template, jsonify, g#, request
 from pymodules.errors import InvalidUsage
 import requests
 import logging
 import uuid
+import os
+from db import db
 
 app = Flask(__name__.split('.')[0])
 
 app.config.update(dict(
-    DATABASE='',
     DEBUG=True,
-    SECRET_KEY='development key',
-    USERNAME='admin',
-    PASSWORD='default'
+    SECRET_KEY=os.environ.get('SECRET_KEY', 'Developer Secret Key'),
 ))
 
 
@@ -41,6 +40,14 @@ def before_request():
     # to avoid any fancy login code, just embed a user id into the session
     if 'user_id' not in session:
         session['user_id'] = uuid.uuid1()
+
+
+@app.teardown_appcontext
+def close_db(error):
+    """Closes the database again at the end of the request."""
+    #if hasattr(g, 'sqlite_db'):
+    #    g.sqlite_db.close()
+    pass
 
 
 if __name__ == '__main__':
