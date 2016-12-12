@@ -46,8 +46,8 @@ def get_jobs_route():
     jobs = get_jobs(job_ids=user.get('jobs',[]))
     return jsonify(jobs=jobs)
 
-@app.route('/submit/', methods=['POST'])
-def submit():
+@app.route('/fetch/', methods=['POST'])
+def fetch():
     user = get_user()
     url = get_submitted_url()
     job = get_new_job(url=url)

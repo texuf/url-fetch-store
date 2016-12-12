@@ -3,8 +3,9 @@ import os
 
 global mongo
 
-#if os.environ.get('ENVIRONMENT') == 'test':
-if os.environ.get('ENVIRONMENT') != 'production':
+#os.environ['USE_MONGOMOCK'] = 'true'
+
+if os.environ.get('ENVIRONMENT') == 'test' or os.environ.get('USE_MONGOMOCK') == 'true':
     global mongo
     import mongomock as mongo
 else:

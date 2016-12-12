@@ -35,9 +35,9 @@ class AppTestCase(unittest.TestCase):
         assert 'jobs' in rv.data
         assert len(flask.json.loads(rv.data)['jobs']) == 0
         
-    def test_submit_job(self):
+    def test_fetch_job(self):
         url = 'www.google.com'
-        rv = self.app.post('/submit/', data=flask.json.dumps({'url':url}), content_type='application/json')
+        rv = self.app.post('/fetch/', data=flask.json.dumps({'url':url}), content_type='application/json')
         assert 'job' in rv.data
         assert url in flask.json.loads(rv.data)['job']['url']
 
@@ -47,7 +47,7 @@ class AppTestCase(unittest.TestCase):
 
     def test_job_status(self):
         url = 'www.google.com'
-        rv = self.app.post('/submit/', data=flask.json.dumps({'url':url}), content_type='application/json')
+        rv = self.app.post('/fetch/', data=flask.json.dumps({'url':url}), content_type='application/json')
         assert 'job' in rv.data
         data = flask.json.loads(rv.data)
         #print(data)

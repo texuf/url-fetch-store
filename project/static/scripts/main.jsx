@@ -2,7 +2,6 @@
 var AppState = {
   None:0,
   Fetching:1,
-  Parsing:2,
   Error:3
 };
 
@@ -10,17 +9,15 @@ var AppState = {
 var MainComponent = React.createClass({
   getInitialState: function() {
     return {
-      originalHtml: "",
       html: "", 
-      tagStats:{}, 
+      jobs:[], 
       appState:AppState.None,
     };
   },
   handleUrlSubmit: function(data) {
     this.setState({
       html: "",
-      originalHtml:"",
-      tagStats:{},
+      jobs:[],
       appState: AppState.Fetching
     });   
     $.ajax({
@@ -30,9 +27,8 @@ var MainComponent = React.createClass({
       data: data,
       success: function(data) {
         this.setState({
-          originalHtml: data.html,
-          tagStats:data.tagStats,
-          appState:AppState.Parsing,
+          jobs:data.jobs,
+          appState:AppState.None,
         });
         var self = this;
         Rainbow.color(data.html, 'html', function(highlighted_code) {
@@ -50,43 +46,14 @@ var MainComponent = React.createClass({
       }.bind(this)
     });
   },
-  colorSubstrings: function(self, tagTuples, i, startIndex, new_html, highlight){
-    if(startIndex >= self.state.originalHtml.length)
-    {
-      self.setState({
+  colorSubstrings: function(new_html){
+    self.setState({
         appState:AppState.None,
         html:new_html
-      });
-      //Recursive End condition
-      return;
-    }
-    
-    self.setState({
-      appState:AppState.Parsing,
-      html:new_html
-    });
-  
-    var endIndex = (i == tagTuples.length)
-                    ? self.state.originalHtml.length
-                    : (highlight)
-                      ? tagTuples[i][1]
-                      : tagTuples[i][0],
-       substring = self.state.originalHtml.substring(startIndex, endIndex);
-    Rainbow.color(substring, 'html', function(highlighted_code) {
-        if(highlight)
-        {
-          new_html += '<span class="highlight">'+highlighted_code+'</span>';
-          i=i+1;
-        }
-        else
-        {
-          new_html += highlighted_code
-        }
-        self.colorSubstrings(self, tagTuples, i, endIndex, new_html, !highlight);
     });
   },
-  handleTagClick: function(tag){
-    this.colorSubstrings(this, this.state.tagStats[tag], 0, 0, "", false);
+  handleTagClick: function(job){
+    this.colorSubstrings(job.html);
   },
   render: function() {
     return (
@@ -98,8 +65,8 @@ var MainComponent = React.createClass({
         </div>
         <div className="mainContainer">
           <div className="leftColumn">
-            <TagsContainer  
-              tagStats={this.state.tagStats}  
+            <JobsContainer  
+              jobs={this.state.jobs}  
               appState={this.state.appState}
               onTagClick={this.handleTagClick} 
               parent={this}/>
@@ -114,23 +81,23 @@ var MainComponent = React.createClass({
   }
 });
 
-var TagsContainer = React.createClass({
+var JobsContainer = React.createClass({
   render:function(){
     var self=this;
-    var tagNodes = Object.keys(this.props.tagStats).map(function(key, index){
+    var tagNodes = Object.keys(this.props.jobs).map(function(job, index){
       return (
-          <div key={key} className="tagName">
+          <div key={key} className="jobName">
             <button 
-              className="tagButton" 
-              onClick={self.props.onTagClick.bind(self.props.parent, key)}
-              disabled={self.props.appState == AppState.Parsing}>
-              {key} ({self.props.tagStats[key].length}) 
+              className="jobButton" 
+              onClick={self.props.onTagClick.bind(self.props.parent, job)}
+              disabled={job.status != 'complete'}>
+              {job.url} 
             </button>
           </div>
         )
     });
     return (
-        <div className="tagList">
+        <div className="jobList">
           {tagNodes}
         </div>
     );
@@ -139,9 +106,7 @@ var TagsContainer = React.createClass({
 
 var StatusContainer = React.createClass({
   getStatus: function(appState){
-    if(appState == AppState.Parsing)
-      return "parsing markup...";
-    else if(appState == AppState.Fetching)
+    if(appState == AppState.Fetching)
       return "fetching url...";
     else if(appState == AppState.Error)
       return "error fetching url...";
@@ -155,9 +120,9 @@ var StatusContainer = React.createClass({
 
 var LoadingIcon = React.createClass({
   render: function(){
-    if(this.props.appState == AppState.Parsing)
+    /*if(this.props.appState == AppState.Parsing)
       return (<div className="bearContainer"><img width="172" height="100" src="/static/images/bear.gif"/> </div>)
-    else
+    else*/
       return (<div/>)
   }
 });
@@ -189,15 +154,14 @@ var UrlInputForm = React.createClass({
       <form className="urlForm" onSubmit={this.handleSubmit}>
         <input type="text" defaultValue="slack.com"  ref="url" />
         <input type="submit" 
-          value="Fetch URL" 
-          disabled={ this.props.appState == AppState.Parsing 
-                     || this.props.appState == AppState.Fetching} />
+          value="Fetch URL 2" 
+          disabled={ this.props.appState == AppState.Fetching} />
       </form>
     );
   }
 });
 
 ReactDOM.render(
-  <MainComponent url="/api/fetch" pollInterval={2000} />,
+  <MainComponent url="fetch/" pollInterval={2000} />,
   document.getElementById('content')
 );
