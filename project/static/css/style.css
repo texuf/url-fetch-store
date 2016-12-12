@@ -1,0 +1,54 @@
+/* custom styles */
+
+span.highlight {
+  background-color: yellow;
+}
+
+.headerContainer{
+    margin-top: 20px;
+}
+
+.mainContainer {
+  width: 100%;
+  overflow: hidden;
+}
+
+.leftColumn {    
+  width: 200px;
+  float: left;
+  margin-top: 12px;
+}
+
+.rightColumn {
+  margin-left: 210px;
+}
+
+.tagName {
+  width:100%;
+  margin-bottom: 2px;
+}
+
+.tagButton{
+  width:100%;
+}
+
+.urlForm{
+  float: left;
+  margin-right: 20px;
+}
+
+.mainPrompt{
+  float: left;
+}
+
+.statusContainer{
+  color: #aaaaaa;
+  font-size: 10;
+  margin-left: 20px;
+}
+
+.bearContainer{
+    text-align: center;
+    margin-right: 250px;
+    margin-top: 40px;
+}
