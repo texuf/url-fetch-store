@@ -5,7 +5,7 @@ import os
 os.environ['ENVIRONMENT'] = 'test'
 
 import app as myapp
-from db import db
+
 
 class AppTestCase(unittest.TestCase):
 
@@ -30,9 +30,20 @@ class AppTestCase(unittest.TestCase):
             assert 'user_id' in flask.session
 
     def test_db_connection(self):
-        print myapp.db
-        assert myapp.db != None
+        rv = self.app.get('/jobs/')
+        assert 'jobs' in rv.data
+        assert len(flask.json.loads(rv.data)['jobs']) == 0
         
+    def test_submit_job(self):
+        pass
+
+    def test_job_status(self):
+        pass
+
+    def test_expiration(self):
+        #datetime.datetime.now(id.generation_time.tzinfo) - id.generation_time
+        #t.total_seconds()
+        pass
 
 
 
