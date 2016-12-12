@@ -23,6 +23,7 @@ class AppTestCase(unittest.TestCase):
             assert 'foo' not in flask.session
             assert 'user_id' in flask.session
 
+    
 
 if __name__ == '__main__':
     unittest.main()
