@@ -1,7 +1,8 @@
 import unittest
 import flask
 import os
-
+from bson import ObjectId
+from datetime import datetime
 os.environ['ENVIRONMENT'] = 'test'
 
 import app as myapp
@@ -35,10 +36,31 @@ class AppTestCase(unittest.TestCase):
         assert len(flask.json.loads(rv.data)['jobs']) == 0
         
     def test_submit_job(self):
-        pass
+        url = 'www.google.com'
+        rv = self.app.post('/submit/', data=flask.json.dumps({'url':url}), content_type='application/json')
+        assert 'job' in rv.data
+        assert url in flask.json.loads(rv.data)['job']['url']
+
+        #make sure our job is in jobs
+        rv = self.app.get('/jobs/')
+        assert len(flask.json.loads(rv.data)['jobs']) == 1
 
     def test_job_status(self):
-        pass
+        url = 'www.google.com'
+        rv = self.app.post('/submit/', data=flask.json.dumps({'url':url}), content_type='application/json')
+        assert 'job' in rv.data
+        data = flask.json.loads(rv.data)
+        #print(data)
+        assert data['job']['status'] == 'fetching'
+        assert 'id' in data['job']
+        job_id =  data['job']['id']
+        start_time = datetime.now()
+        while (datetime.now() - start_time).total_seconds() < 10:
+            rv = self.app.get('/job/%s/' % job_id)
+            data = flask.json.loads(rv.data)
+            if data['job']['status'] != 'fetching':
+                break
+        assert len(data['job']['html']) > 0
 
     def test_expiration(self):
         #datetime.datetime.now(id.generation_time.tzinfo) - id.generation_time
