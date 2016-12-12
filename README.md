@@ -11,7 +11,7 @@ Requirements: Create a job queue whose workers fetch data from a URL and store t
 ### Setup instructions
     
     virtualenv venv
-    source venv/bin/activate
+    . venv/bin/activate
     pip install -r requirements.txt
     ./run.sh
 
@@ -20,6 +20,10 @@ Requirements: Create a job queue whose workers fetch data from a URL and store t
     npm install babel-preset-react
     babel --presets react project/static/scripts/ --watch --out-dir project/static/build
 
+### Run the tests
+    . venv/bin/activate
+    pip install -r requirements.txt
+    ./test.sh
 
 ### Helpful documentation
 
