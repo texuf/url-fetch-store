@@ -2,6 +2,17 @@
 
 Requirements: Create a job queue whose workers fetch data from a URL and store the results in a database.  The job queue should expose a REST API for adding jobs and checking their status / results.
 
+### Solution
+
+I implemented a flask server and a celery queue, hosted on heroku, and added a react front end to interact with the api.
+
+Api routes and endpoints:
+
+    GET '/' #index
+    GET '/job/<job_id>/' #get status of single job
+    GET '/jobs/' #get all jobs
+    POST '/fetch/' #submit {'url':'google.com'}, returns job object
+
 ### Check it out here
 
 https://peaceful-falls-77470.herokuapp.com/

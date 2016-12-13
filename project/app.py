@@ -48,12 +48,12 @@ def handle_invalid_usage(error):
     response.status_code = error.status_code
     return response
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def get_index():
     user_id = session['user_id']
     return render_template('index.html', user_id=user_id)
 
-@app.route('/job/<job_id>/')
+@app.route('/job/<job_id>/', methods=['GET'])
 def get_job_route(job_id):
     job = get_job(job_id=job_id)
     if job['status'] == JOB_STATUS_FETCHING:
@@ -63,7 +63,7 @@ def get_job_route(job_id):
             update_job(job_db=db, job_id=job_id, html="Request Timed Out", status=JOB_STATUS_ERROR)
     return jsonify(job=job)
 
-@app.route('/jobs/')
+@app.route('/jobs/', methods=['GET'])
 def get_jobs_route():
     user = get_user()
     jobs = get_jobs(job_ids=user.get('jobs',[]))
@@ -75,6 +75,7 @@ def fetch():
     url = get_submitted_url()
     job = get_new_job(url=url)
     job_id = job['id']
+    app.logger.info("CELERY TASK START: %s", url)
     user['jobs'].insert(0, job_id)
     update_user(user)
     fetch_url.delay(job_id=job_id, url=url)
