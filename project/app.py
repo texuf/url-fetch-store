@@ -8,6 +8,11 @@ from cellery_app import make_celery
 from functools import partial
 import requests
 
+#define some globals
+JOB_STATUS_FETCHING = 'fetching'
+JOB_STATUS_COMPLETE = 'complete'
+JOB_STATUS_ERROR = 'error'
+
 app = Flask(__name__.split('.')[0])
 
 app.config.update(dict(
@@ -37,7 +42,6 @@ def handle_invalid_usage(error):
     response.status_code = error.status_code
     return response
 
-
 @app.route('/')
 def get_index():
     user_id = session['user_id']
@@ -60,7 +64,7 @@ def fetch():
     url = get_submitted_url()
     job = get_new_job(url=url)
     job_id = job['id']
-    user['jobs'].append(job_id)
+    user['jobs'].insert(0, job_id)
     update_user(user)
     fetch_url.delay(job_id=job_id, url=url)
     return jsonify(job=job)
@@ -77,10 +81,10 @@ def fetch_url(job_id, url):
     try:
         resp = requests.get(url)
         app.logger.info("CELERY TASK COMPLETE FOR: %s", url)
-        update_job(job_id=job_id, html=resp.text, status='complete')
+        update_job(job_id=job_id, html=resp.text, status=JOB_STATUS_COMPLETE)
     except requests.ConnectionError as exception:
         app.logger.info("CELERY TASK FAILED FOR: %s", url)
-        update_job(job_id=job_id, html=str(exception), status='error')
+        update_job(job_id=job_id, html=str(exception), status=JOB_STATUS_ERROR)
         
 
 def get_user():
@@ -105,7 +109,7 @@ def get_new_job(url):
     #insert an empty record to get an id
     _id = db.jobs.insert({})
     blob = {
-        'status': 'fetching',
+        'status': JOB_STATUS_FETCHING,
         'url': url,
         'html': '',
         'id': str(_id)
