@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Url-Fetch</title>
+    <!-- favicon -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <!-- styles -->
+    <link href="{{ url_for('static', filename='css/rainbow/github.css') }}" rel="stylesheet" type="text/css">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" type="text/css">
+
+
+    <!-- rainbow js for html formatting -->
+    <script src="{{ url_for('static', filename='build/rainbow/rainbow.js') }}"></script>
+    <script src="{{ url_for('static', filename='build/rainbow/language/generic.js') }}"></script>
+    <script src="{{ url_for('static', filename='build/rainbow/language/html.js') }}"></script>
+
+  </head>
+  <body>
+    <!-- react content root -->
+    <div id="content"></div>
+    <!-- react js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.1/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.1/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <!-- react main.js -->
+    <script src="{{ url_for('static', filename='build/main.js') }}"></script>
+  </body>
+</html>
