@@ -7,6 +7,7 @@ from db import db
 from cellery_app import make_celery
 from functools import partial
 import requests
+import bs4 as BS
 
 #define some globals
 JOB_STATUS_FETCHING = 'fetching'
@@ -33,7 +34,7 @@ app.logger.setLevel(logging.DEBUG)
 #make the celery app
 celery = make_celery(app)
 #i didn't install celery locally, so just run everything greedy if not productio
-if app.config.get('ENVIRONMENT') != "production":
+if app.config.get('ENVIRONMENT') != 'production':
     celery.conf.update(CELERY_ALWAYS_EAGER=True)
 
 @app.errorhandler(InvalidUsage)
@@ -81,8 +82,10 @@ def fetch_url(job_id, url):
     try:
         resp = requests.get(url)
         app.logger.info("CELERY TASK COMPLETE FOR: %s", url)
-        update_job(job_id=job_id, html=resp.text, status=JOB_STATUS_COMPLETE)
-    except requests.ConnectionError as exception:
+        soup = BS.BeautifulSoup(resp.text, 'html.parser')
+        html = soup.prettify()
+        update_job(job_id=job_id, html=html, status=JOB_STATUS_COMPLETE)
+    except Exception as exception:
         app.logger.info("CELERY TASK FAILED FOR: %s", url)
         update_job(job_id=job_id, html=str(exception), status=JOB_STATUS_ERROR)
         
