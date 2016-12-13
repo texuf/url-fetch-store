@@ -20,7 +20,8 @@ app.config.update(dict(
     DEBUG=True,
     SECRET_KEY=os.environ.get('SECRET_KEY', 'Developer Secret Key'),
     CELERY_BACKEND=os.environ.get('REDIS_URL', 'redis://localhost:6379'),
-    CELERY_BROKER_URL=os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    CELERY_BROKER_URL=os.environ.get('REDIS_URL', 'redis://localhost:6379'),
+    ENVIRONMENT=os.environ.get('ENVIRONMENT', 'local')
 ))
 
 #add logging
