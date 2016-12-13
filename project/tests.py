@@ -63,12 +63,6 @@ class AppTestCase(unittest.TestCase):
                 break
         assert len(data['job']['html']) > 0
 
-    def test_expiration(self):
-        #datetime.datetime.now(id.generation_time.tzinfo) - id.generation_time
-        #t.total_seconds()
-        pass
-
-
 
 if __name__ == '__main__':
     unittest.main()

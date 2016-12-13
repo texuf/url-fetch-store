@@ -2,48 +2,41 @@
 var AppState = {
   None: 0,
   Fetching: 1,
+  Parsing: 2,
   Error: 3
 };
 
-var MainComponent = React.createClass({
-  displayName: "MainComponent",
+var JobStatus = {
+  Fetching: 'fetching',
+  Complete: 'complete',
+  Error: 'error'
+};
 
+var MainComponent = React.createClass({
+  displayName: 'MainComponent',
+
+  componentDidMount: function () {
+    this.getJobs();
+    setInterval(this.pollJobs, this.props.pollInterval);
+  },
   getInitialState: function () {
     return {
-      html: "",
+      selectedJobId: null,
       jobs: {},
       appState: AppState.None
     };
   },
-  handleUrlSubmit: function (data) {
-    this.setState({
-      html: "",
-      jobs: this.state.jobs,
-
-      appState: AppState.Fetching
-    });
+  getJobs: function () {
     $.ajax({
-      url: this.props.url,
+      url: '/jobs/',
       dataType: 'json',
-      type: 'POST',
-      data: data,
+      type: 'GET',
       success: function (data) {
-        console.log("state " + this.state);
-        var jobs = data.jobs != null ? data.jobs : this.state.jobs;
-        if (data.job != null) {
-          jobs[data.job.id] = data.job;
-        }
         this.setState({
-          jobs: jobs,
+          jobs: data.jobs,
           appState: AppState.None
         });
-        /*var self = this;
-        Rainbow.color(data.html, 'html', function(highlighted_code) {
-            self.setState({
-              html: highlighted_code,
-              appState:AppState.None,
-            });
-        });*/
+        this.pollJobs();
       }.bind(this),
       error: function (xhr, status, err) {
         console.error(this.props.url, status, err.toString());
@@ -53,43 +46,106 @@ var MainComponent = React.createClass({
       }.bind(this)
     });
   },
-  colorSubstrings: function (html) {
-    self.setState({
-      appState: AppState.None,
-      html: html
+  getJob: function (jobId) {
+    $.ajax({
+      url: '/job/' + jobId + '/',
+      dataType: 'json',
+      type: 'GET',
+      success: function (data) {
+        var jobId = data.job.id;
+        this.state.jobs[jobId] = data.job;
+        this.setState({
+          jobs: this.state.jobs,
+          appState: AppState.None
+        });
+      }.bind(this),
+      error: function (xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+        this.setState({
+          appState: AppState.Error
+        });
+      }.bind(this)
+    });
+  },
+  pollJobs: function () {
+    for (var jobId in this.state.jobs) {
+      if (this.state.jobs[jobId].status == null || this.state.jobs[jobId].status == JobStatus.Fetching) {
+        this.getJob(jobId);
+      }
+    }
+  },
+  handleUrlSubmit: function (data) {
+    this.setState({
+      jobs: this.state.jobs,
+      appState: AppState.Fetching
+    });
+    $.ajax({
+      url: '/fetch/',
+      dataType: 'json',
+      type: 'POST',
+      data: data,
+      success: function (data) {
+        var jobs = data.jobs != null ? data.jobs : this.state.jobs;
+        if (data.job != null) {
+          jobs[data.job.id] = data.job;
+        }
+        this.setState({
+          jobs: jobs,
+          appState: AppState.None
+        });
+      }.bind(this),
+      error: function (xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+        this.setState({
+          appState: AppState.Error
+        });
+      }.bind(this)
     });
   },
   handleJobClick: function (jobId) {
-    this.colorSubstrings(this.state.jobs[jobId].html);
+    var job = this.state.jobs[jobId];
+    this.setState({
+      selectedJob: job
+    });
+    if (job.prettyHtml == null) {
+      var self = this;
+      //NOTE rainbow js isn't great - if you call it multiple times at once it just craps out sometimes
+      Rainbow.color(job.html, 'html', function (highlighted_code) {
+        job.prettyHtml = highlighted_code;
+        self.setState({
+          appState: AppState.None
+        });
+      });
+    }
   },
   render: function () {
     return React.createElement(
-      "div",
+      'div',
       null,
       React.createElement(
-        "div",
-        { className: "headerContainer" },
+        'div',
+        { className: 'headerContainer' },
         React.createElement(UrlInputForm, { onUrlSubmit: this.handleUrlSubmit,
           appState: this.state.appState }),
         React.createElement(StatusContainer, { appState: this.state.appState })
       ),
       React.createElement(
-        "div",
-        { className: "mainContainer" },
+        'div',
+        { className: 'mainContainer' },
         React.createElement(
-          "div",
-          { className: "leftColumn" },
+          'div',
+          { className: 'leftColumn' },
           React.createElement(JobsContainer, {
             jobs: this.state.jobs,
-            appState: this.state.appState,
+            selectedJob: this.state.selectedJob,
             onJobClick: this.handleJobClick,
             parent: this })
         ),
         React.createElement(
-          "div",
-          { className: "rightColumn" },
-          React.createElement(HtmlContainer, { html: this.state.html }),
-          React.createElement(LoadingIcon, { appState: this.state.appState })
+          'div',
+          { className: 'rightColumn' },
+          React.createElement(HtmlContainer, { selectedJob: this.state.selectedJob }),
+          React.createElement(LoadingIcon, { selectedJob: this.state.selectedJob })
         )
       )
     );
@@ -97,76 +153,96 @@ var MainComponent = React.createClass({
 });
 
 var JobsContainer = React.createClass({
-  displayName: "JobsContainer",
+  displayName: 'JobsContainer',
 
+  formatName: function (job) {
+    var postfix = job.status == JobStatus.Fetching ? ' (fetching)' : job.prettyHtml != null ? ' ✓' : '';
+
+    var prefix = job == this.props.selectedJob ? '> ' : '';
+    return prefix + job.url + postfix;
+  },
   render: function () {
     var self = this;
-    var tagNodes = Object.keys(this.props.jobs).map(function (key, index) {
+    var tagNodes = Object.keys(this.props.jobs).sort().reverse().map(function (key, index) {
+
       return React.createElement(
-        "div",
-        { key: key, className: "jobName" },
+        'div',
+        { key: key, className: 'jobName' },
         React.createElement(
-          "button",
+          'button',
           {
-            className: "jobButton",
+            className: 'jobButton',
+            selected: true,
             onClick: self.props.onJobClick.bind(self.props.parent, key),
-            disabled: self.props.jobs[key].status != 'complete' },
-          self.props.jobs[key].url
+            disabled: self.props.jobs[key].status == null || self.props.jobs[key].status == JobStatus.Fetching
+          },
+          self.formatName(self.props.jobs[key])
         )
       );
     });
     return React.createElement(
-      "div",
-      { className: "jobList" },
+      'div',
+      { className: 'jobList' },
       tagNodes
     );
   }
 });
 
 var StatusContainer = React.createClass({
-  displayName: "StatusContainer",
+  displayName: 'StatusContainer',
 
   getStatus: function (appState) {
     if (appState == AppState.Fetching) return "fetching url...";else if (appState == AppState.Error) return "error fetching url...";else return "";
   },
   render: function () {
     return React.createElement(
-      "div",
-      { className: "statusContainer" },
+      'div',
+      { className: 'statusContainer' },
       this.getStatus(this.props.appState)
     );
   }
 });
 
 var LoadingIcon = React.createClass({
-  displayName: "LoadingIcon",
+  displayName: 'LoadingIcon',
 
   render: function () {
-    /*if(this.props.appState == AppState.Parsing)
-      return (<div className="bearContainer"><img width="172" height="100" src="/static/images/bear.gif"/> </div>)
-    else*/
-    return React.createElement("div", null);
+    if (this.props.selectedJob != null && this.props.selectedJob.prettyHtml == null) return React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { className: 'bearContainer' },
+        React.createElement('img', { width: '172', height: '100', src: '/static/images/bear.gif' }),
+        ' '
+      ),
+      React.createElement(
+        'div',
+        { className: 'bearContainer' },
+        'beautifying HTML...'
+      )
+    );else return React.createElement('div', null);
   }
 });
 
 var HtmlContainer = React.createClass({
-  displayName: "HtmlContainer",
+  displayName: 'HtmlContainer',
 
   createMarkup: function (html) {
     return { __html: html };
   },
   render: function () {
-    var html = this.props.html;
-    if (html) return React.createElement(
-      "pre",
+    var selectedJob = this.props.selectedJob;
+    if (selectedJob != null && selectedJob.prettyHtml != null) return React.createElement(
+      'pre',
       null,
-      React.createElement("div", { dangerouslySetInnerHTML: this.createMarkup(html) })
-    );else return React.createElement("div", null);
+      React.createElement('div', { dangerouslySetInnerHTML: this.createMarkup(selectedJob.prettyHtml) })
+    );else return React.createElement('div', null);
   }
 });
 
 var UrlInputForm = React.createClass({
-  displayName: "UrlInputForm",
+  displayName: 'UrlInputForm',
 
   handleSubmit: function (e) {
     e.preventDefault();
@@ -178,14 +254,14 @@ var UrlInputForm = React.createClass({
   },
   render: function () {
     return React.createElement(
-      "form",
-      { className: "urlForm", onSubmit: this.handleSubmit },
-      React.createElement("input", { type: "text", defaultValue: "slack.com", ref: "url" }),
-      React.createElement("input", { type: "submit",
-        value: "Fetch URL",
+      'form',
+      { className: 'urlForm', onSubmit: this.handleSubmit },
+      React.createElement('input', { type: 'text', defaultValue: 'massdrop.com', ref: 'url' }),
+      React.createElement('input', { type: 'submit',
+        value: 'Fetch URL',
         disabled: this.props.appState == AppState.Fetching })
     );
   }
 });
 
-ReactDOM.render(React.createElement(MainComponent, { url: "fetch/", pollInterval: 2000 }), document.getElementById('content'));
+ReactDOM.render(React.createElement(MainComponent, { pollInterval: 5000 }), document.getElementById('content'));
