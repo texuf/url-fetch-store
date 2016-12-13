@@ -48,6 +48,7 @@ var MainComponent = React.createClass({
     });
   },
   pollJobs: function () {
+
     for (var jobId in this.state.jobs) {
       if (this.state.jobs[jobId].status == JobStatus.Fetching) {
         $.ajax({
@@ -55,6 +56,7 @@ var MainComponent = React.createClass({
           dataType: 'json',
           type: 'GET',
           success: function (data) {
+            var jobId = data.job.id;
             this.state.jobs[jobId] = data.job;
             this.setState({
               jobs: this.state.jobs,
@@ -260,4 +262,4 @@ var UrlInputForm = React.createClass({
   }
 });
 
-ReactDOM.render(React.createElement(MainComponent, { pollInterval: 2000 }), document.getElementById('content'));
+ReactDOM.render(React.createElement(MainComponent, { pollInterval: 5000 }), document.getElementById('content'));
