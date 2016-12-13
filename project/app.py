@@ -59,7 +59,7 @@ def get_job_route(job_id):
     if job['status'] == JOB_STATUS_FETCHING:
         o_id = ObjectId(job_id)
         td = datetime.now(o_id.generation_time.tzinfo) - o_id.generation_time
-        if td.total_seconds() > 15:
+        if td.total_seconds() > 60:
             update_job(job_db=db, job_id=job_id, html="Request Timed Out", status=JOB_STATUS_ERROR)
     return jsonify(job=job)
 
@@ -93,13 +93,13 @@ def fetch_url(job_id, url):
     job_db = db if app.config['TESTING'] == True else create_db()
     try:
         resp = requests.get(url)
-        app.logger.info("CELERY TASK COMPLETE FOR: %s", url)
         soup = BS.BeautifulSoup(resp.text, 'html.parser')
         html = soup.prettify()
         update_job(job_db=job_db,job_id=job_id, html=html, status=JOB_STATUS_COMPLETE)
+        app.logger.info("CELERY TASK COMPLETE FOR: %s", url)
     except Exception as exception:
-        app.logger.info("CELERY TASK FAILED FOR: %s", url)
         update_job(job_db=job_db, job_id=job_id, html=str(exception), status=JOB_STATUS_ERROR)
+        app.logger.info("CELERY TASK FAILED FOR: %s", url)
         
 def update_job(job_db, job_id, status, html):
     job_db.jobs.update({'_id': ObjectId(job_id)}, {

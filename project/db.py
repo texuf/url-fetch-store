@@ -1,6 +1,5 @@
 
 import os
-
 global mongo
 
 #os.environ['USE_MONGOMOCK'] = 'true'
