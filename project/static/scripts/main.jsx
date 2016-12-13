@@ -19,7 +19,7 @@ var MainComponent = React.createClass({
   },
   getInitialState: function() {
     return {
-      html: "", 
+      selectedJobId:null,
       jobs:{}, 
       appState:AppState.None,
     };
@@ -44,7 +44,6 @@ var MainComponent = React.createClass({
     });
   },
   pollJobs: function(){
-
     for (var jobId in this.state.jobs) {
       if(this.state.jobs[jobId].status == JobStatus.Fetching){
         $.ajax({
@@ -71,7 +70,6 @@ var MainComponent = React.createClass({
   },
   handleUrlSubmit: function(data) {
     this.setState({
-      html: "",
       jobs:this.state.jobs,
       appState: AppState.Fetching
     });   
@@ -99,22 +97,14 @@ var MainComponent = React.createClass({
     });
   },
   colorAndRender: function(job){
-    if (job.prettyHtml != null){
-        this.setState({
-          html: job.prettyHtml,
-          appState:AppState.None,
-        });
-    }
-    else {
-      this.setState({
-          html: job.prettyHtml,
-          appState:AppState.Parsing,
-        });
+    this.setState({
+      selectedJob: job
+    })
+    if (job.prettyHtml == null){
       var self = this;
       Rainbow.color(job.html, 'html', function(highlighted_code) {
           job.prettyHtml = highlighted_code
           self.setState({
-            html: highlighted_code,
             appState:AppState.None,
           });
       });
@@ -140,8 +130,8 @@ var MainComponent = React.createClass({
               parent={this}/>
           </div>
           <div className="rightColumn"> 
-            <HtmlContainer html={this.state.html} />
-            <LoadingIcon appState={this.state.appState} />
+            <HtmlContainer selectedJob={this.state.selectedJob} />
+            <LoadingIcon selectedJob={this.state.selectedJob} />
           </div>
         </div>
       </div>
@@ -165,7 +155,7 @@ var JobsContainer = React.createClass({
             <button 
               className="jobButton" 
               onClick={self.props.onJobClick.bind(self.props.parent, key)}
-              //disabled={self.props.jobs[key].status == JobStatus.Fetching || self.props.appState == AppState.Parsing}
+              disabled={self.props.jobs[key].status == JobStatus.Fetching}
               >
               {self.formatName(self.props.jobs[key])}
             </button>
@@ -196,7 +186,7 @@ var StatusContainer = React.createClass({
 
 var LoadingIcon = React.createClass({
   render: function(){
-    if(this.props.appState == AppState.Parsing)
+    if(this.props.selectedJob != null && this.props.selectedJob.prettyHtml == null)
       return (
         <div>
           <div className="bearContainer"><img width="172" height="100" src="/static/images/bear.gif"/> </div>
@@ -213,9 +203,9 @@ var HtmlContainer = React.createClass({
     return {__html:html}
   },
   render: function(){
-    var html = this.props.html;
-    if(html)
-      return (<pre><div dangerouslySetInnerHTML={this.createMarkup(html)}/></pre>);
+    var selectedJob = this.props.selectedJob;
+    if(selectedJob != null && selectedJob.prettyHtml != null)
+      return (<pre><div dangerouslySetInnerHTML={this.createMarkup(selectedJob.prettyHtml)}/></pre>);
     else
       return (<div/>);
   }
@@ -236,8 +226,7 @@ var UrlInputForm = React.createClass({
         <input type="text" defaultValue="massdrop.com"  ref="url" />
         <input type="submit" 
           value="Fetch URL" 
-          disabled={ this.props.appState == AppState.Parsing 
-                     || this.props.appState == AppState.Fetching} />
+          disabled={ this.props.appState == AppState.Fetching} />
       </form>
     );
   }

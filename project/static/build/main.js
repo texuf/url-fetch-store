@@ -21,7 +21,7 @@ var MainComponent = React.createClass({
   },
   getInitialState: function () {
     return {
-      html: "",
+      selectedJobId: null,
       jobs: {},
       appState: AppState.None
     };
@@ -46,7 +46,6 @@ var MainComponent = React.createClass({
     });
   },
   pollJobs: function () {
-
     for (var jobId in this.state.jobs) {
       if (this.state.jobs[jobId].status == JobStatus.Fetching) {
         $.ajax({
@@ -73,7 +72,6 @@ var MainComponent = React.createClass({
   },
   handleUrlSubmit: function (data) {
     this.setState({
-      html: "",
       jobs: this.state.jobs,
       appState: AppState.Fetching
     });
@@ -101,21 +99,14 @@ var MainComponent = React.createClass({
     });
   },
   colorAndRender: function (job) {
-    if (job.prettyHtml != null) {
-      this.setState({
-        html: job.prettyHtml,
-        appState: AppState.None
-      });
-    } else {
-      this.setState({
-        html: job.prettyHtml,
-        appState: AppState.Parsing
-      });
+    this.setState({
+      selectedJob: job
+    });
+    if (job.prettyHtml == null) {
       var self = this;
       Rainbow.color(job.html, 'html', function (highlighted_code) {
         job.prettyHtml = highlighted_code;
         self.setState({
-          html: highlighted_code,
           appState: AppState.None
         });
       });
@@ -150,8 +141,8 @@ var MainComponent = React.createClass({
         React.createElement(
           'div',
           { className: 'rightColumn' },
-          React.createElement(HtmlContainer, { html: this.state.html }),
-          React.createElement(LoadingIcon, { appState: this.state.appState })
+          React.createElement(HtmlContainer, { selectedJob: this.state.selectedJob }),
+          React.createElement(LoadingIcon, { selectedJob: this.state.selectedJob })
         )
       )
     );
@@ -179,7 +170,8 @@ var JobsContainer = React.createClass({
           {
             className: 'jobButton',
             onClick: self.props.onJobClick.bind(self.props.parent, key),
-            disabled: self.props.jobs[key].status == JobStatus.Fetching || self.props.appState == AppState.Parsing },
+            disabled: self.props.jobs[key].status == JobStatus.Fetching
+          },
           self.formatName(self.props.jobs[key])
         )
       );
@@ -211,11 +203,20 @@ var LoadingIcon = React.createClass({
   displayName: 'LoadingIcon',
 
   render: function () {
-    if (this.props.appState == AppState.Parsing) return React.createElement(
+    if (this.props.selectedJob != null && this.props.selectedJob.prettyHtml == null) return React.createElement(
       'div',
-      { className: 'bearContainer' },
-      React.createElement('img', { width: '172', height: '100', src: '/static/images/bear.gif' }),
-      ' '
+      null,
+      React.createElement(
+        'div',
+        { className: 'bearContainer' },
+        React.createElement('img', { width: '172', height: '100', src: '/static/images/bear.gif' }),
+        ' '
+      ),
+      React.createElement(
+        'div',
+        { className: 'bearContainer' },
+        'beautifying HTML...'
+      )
     );else return React.createElement('div', null);
   }
 });
@@ -227,11 +228,11 @@ var HtmlContainer = React.createClass({
     return { __html: html };
   },
   render: function () {
-    var html = this.props.html;
-    if (html) return React.createElement(
+    var selectedJob = this.props.selectedJob;
+    if (selectedJob != null && selectedJob.prettyHtml != null) return React.createElement(
       'pre',
       null,
-      React.createElement('div', { dangerouslySetInnerHTML: this.createMarkup(html) })
+      React.createElement('div', { dangerouslySetInnerHTML: this.createMarkup(selectedJob.prettyHtml) })
     );else return React.createElement('div', null);
   }
 });
@@ -254,7 +255,7 @@ var UrlInputForm = React.createClass({
       React.createElement('input', { type: 'text', defaultValue: 'massdrop.com', ref: 'url' }),
       React.createElement('input', { type: 'submit',
         value: 'Fetch URL',
-        disabled: this.props.appState == AppState.Parsing || this.props.appState == AppState.Fetching })
+        disabled: this.props.appState == AppState.Fetching })
     );
   }
 });
