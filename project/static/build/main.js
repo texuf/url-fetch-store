@@ -32,8 +32,6 @@ var MainComponent = React.createClass({
       dataType: 'json',
       type: 'GET',
       success: function (data) {
-        console.log("state " + this.state);
-        console.log("data " + this.data);
         this.setState({
           jobs: data.jobs,
           appState: AppState.None
@@ -85,7 +83,6 @@ var MainComponent = React.createClass({
       type: 'POST',
       data: data,
       success: function (data) {
-        console.log("state " + this.state);
         var jobs = data.jobs != null ? data.jobs : this.state.jobs;
         if (data.job != null) {
           jobs[data.job.id] = data.job;
@@ -172,7 +169,7 @@ var JobsContainer = React.createClass({
   },
   render: function () {
     var self = this;
-    var tagNodes = Object.keys(this.props.jobs).map(function (key, index) {
+    var tagNodes = Object.keys(this.props.jobs).sort().reverse().map(function (key, index) {
 
       return React.createElement(
         'div',
