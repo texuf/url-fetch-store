@@ -36,6 +36,28 @@ var MainComponent = React.createClass({
           jobs: data.jobs,
           appState: AppState.None
         });
+        this.pollJobs();
+      }.bind(this),
+      error: function (xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+        this.setState({
+          appState: AppState.Error
+        });
+      }.bind(this)
+    });
+  },
+  getJob: function (jobId) {
+    $.ajax({
+      url: '/job/' + jobId + '/',
+      dataType: 'json',
+      type: 'GET',
+      success: function (data) {
+        var jobId = data.job.id;
+        this.state.jobs[jobId] = data.job;
+        this.setState({
+          jobs: this.state.jobs,
+          appState: AppState.None
+        });
       }.bind(this),
       error: function (xhr, status, err) {
         console.error(this.props.url, status, err.toString());
@@ -47,26 +69,8 @@ var MainComponent = React.createClass({
   },
   pollJobs: function () {
     for (var jobId in this.state.jobs) {
-      if (this.state.jobs[jobId].status == JobStatus.Fetching) {
-        $.ajax({
-          url: '/job/' + jobId + '/',
-          dataType: 'json',
-          type: 'GET',
-          success: function (data) {
-            var jobId = data.job.id;
-            this.state.jobs[jobId] = data.job;
-            this.setState({
-              jobs: this.state.jobs,
-              appState: AppState.None
-            });
-          }.bind(this),
-          error: function (xhr, status, err) {
-            console.error(this.props.url, status, err.toString());
-            this.setState({
-              appState: AppState.Error
-            });
-          }.bind(this)
-        });
+      if (this.state.jobs[jobId].status == null || this.state.jobs[jobId].status == JobStatus.Fetching) {
+        this.getJob(jobId);
       }
     }
   },
@@ -98,7 +102,8 @@ var MainComponent = React.createClass({
       }.bind(this)
     });
   },
-  colorAndRender: function (job) {
+  handleJobClick: function (jobId) {
+    var job = this.state.jobs[jobId];
     this.setState({
       selectedJob: job
     });
@@ -111,9 +116,6 @@ var MainComponent = React.createClass({
         });
       });
     }
-  },
-  handleJobClick: function (jobId) {
-    this.colorAndRender(this.state.jobs[jobId]);
   },
   render: function () {
     return React.createElement(
@@ -170,7 +172,7 @@ var JobsContainer = React.createClass({
           {
             className: 'jobButton',
             onClick: self.props.onJobClick.bind(self.props.parent, key),
-            disabled: self.props.jobs[key].status == JobStatus.Fetching
+            disabled: self.props.jobs[key].status == null || self.props.jobs[key].status == JobStatus.Fetching
           },
           self.formatName(self.props.jobs[key])
         )

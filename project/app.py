@@ -67,7 +67,7 @@ def get_job_route(job_id):
 def get_jobs_route():
     user = get_user()
     jobs = get_jobs(job_ids=user.get('jobs',[]))
-    return jsonify(jobs={x['id']:x for x in jobs})
+    return jsonify(jobs={x['id']:{'url':x['url'], 'id':x['id']} for x in jobs})
 
 @app.route('/fetch/', methods=['POST'])
 def fetch():
