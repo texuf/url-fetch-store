@@ -33,8 +33,10 @@ app.logger.setLevel(logging.DEBUG)
 
 #make the celery app
 celery = make_celery(app)
-#i didn't install celery locally, so just run everything greedy if not productio
+#i didn't install celery locally, so just run everything greedy if not production
+app.logger.info("BOOTING APP " + str(app.config.get('ENVIRONMENT')))
 if app.config.get('ENVIRONMENT') != 'production':
+    app.logger.info("ALWAYS EAGER")
     celery.conf.update(CELERY_ALWAYS_EAGER=True)
 
 @app.errorhandler(InvalidUsage)
