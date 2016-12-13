@@ -14,4 +14,5 @@ else:
 
 db_uri = os.environ.get('MONGODB_URI', 'mongodb://localhost')
 db_name = os.environ.get('MONGODB_DB', 'url-fetch-store')
-db = mongo.MongoClient(db_uri)[db_name]
+client = mongo.MongoClient(db_uri)
+db = client[db_name]

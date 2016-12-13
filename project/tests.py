@@ -14,6 +14,7 @@ class AppTestCase(unittest.TestCase):
         #print("TEST SETUP")
         myapp.app.config['TESTING'] = True
         myapp.app.config['DATABASE_URL'] = 'postgresql://localhost/url-fetch-store-test'
+        myapp.celery.conf.update(CELERY_ALWAYS_EAGER=True)
         self.app = myapp.app.test_client()
 
     def tearDown(self):

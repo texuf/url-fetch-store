@@ -10,14 +10,15 @@ var MainComponent = React.createClass({
   getInitialState: function() {
     return {
       html: "", 
-      jobs:[], 
+      jobs:{}, 
       appState:AppState.None,
     };
   },
   handleUrlSubmit: function(data) {
     this.setState({
       html: "",
-      jobs:[],
+      jobs:this.state.jobs,
+
       appState: AppState.Fetching
     });   
     $.ajax({
@@ -26,17 +27,22 @@ var MainComponent = React.createClass({
       type: 'POST',
       data: data,
       success: function(data) {
+        console.log("state " + this.state)
+        var jobs = data.jobs != null ? data.jobs : this.state.jobs
+        if (data.job != null){
+          jobs[data.job.id] = data.job
+        }
         this.setState({
-          jobs:data.jobs,
+          jobs: jobs,
           appState:AppState.None,
         });
-        var self = this;
+        /*var self = this;
         Rainbow.color(data.html, 'html', function(highlighted_code) {
             self.setState({
               html: highlighted_code,
               appState:AppState.None,
             });
-        });
+        });*/
       }.bind(this),
       error: function(xhr, status, err) {
         console.error(this.props.url, status, err.toString());
@@ -46,14 +52,14 @@ var MainComponent = React.createClass({
       }.bind(this)
     });
   },
-  colorSubstrings: function(new_html){
+  colorSubstrings: function(html){
     self.setState({
         appState:AppState.None,
-        html:new_html
+        html:html
     });
   },
-  handleTagClick: function(job){
-    this.colorSubstrings(job.html);
+  handleJobClick: function(jobId){
+    this.colorSubstrings(this.state.jobs[jobId].html);
   },
   render: function() {
     return (
@@ -68,7 +74,7 @@ var MainComponent = React.createClass({
             <JobsContainer  
               jobs={this.state.jobs}  
               appState={this.state.appState}
-              onTagClick={this.handleTagClick} 
+              onJobClick={this.handleJobClick} 
               parent={this}/>
           </div>
           <div className="rightColumn"> 
@@ -84,14 +90,14 @@ var MainComponent = React.createClass({
 var JobsContainer = React.createClass({
   render:function(){
     var self=this;
-    var tagNodes = Object.keys(this.props.jobs).map(function(job, index){
+    var tagNodes = Object.keys(this.props.jobs).map(function(key, index){
       return (
           <div key={key} className="jobName">
             <button 
               className="jobButton" 
-              onClick={self.props.onTagClick.bind(self.props.parent, job)}
-              disabled={job.status != 'complete'}>
-              {job.url} 
+              onClick={self.props.onJobClick.bind(self.props.parent, key)}
+              disabled={self.props.jobs[key].status != 'complete'}>
+              {self.props.jobs[key].url} 
             </button>
           </div>
         )
@@ -154,7 +160,7 @@ var UrlInputForm = React.createClass({
       <form className="urlForm" onSubmit={this.handleSubmit}>
         <input type="text" defaultValue="slack.com"  ref="url" />
         <input type="submit" 
-          value="Fetch URL 2" 
+          value="Fetch URL" 
           disabled={ this.props.appState == AppState.Fetching} />
       </form>
     );

@@ -1,27 +1,35 @@
 from flask import Flask, session, render_template, jsonify, g, request
 from pymodules.errors import InvalidUsage
-from requests_futures.sessions import FuturesSession
 import logging
 import os
 from bson import ObjectId
 from db import db
+from cellery_app import make_celery
 from functools import partial
+import requests
 
 app = Flask(__name__.split('.')[0])
 
 app.config.update(dict(
     DEBUG=True,
     SECRET_KEY=os.environ.get('SECRET_KEY', 'Developer Secret Key'),
+    CELERY_BACKEND=os.environ.get('REDIS_URL', 'redis://localhost:6379'),
+    CELERY_BROKER_URL=os.environ.get('REDIS_URL', 'redis://localhost:6379')
 ))
 
-future_session = FuturesSession()
-
+#add logging
 log_handler = logging.StreamHandler()
 log_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s '
     '[in %(pathname)s:%(lineno)d]'))
 app.logger.addHandler(log_handler)
 app.logger.setLevel(logging.DEBUG)
+
+#make the celery app
+celery = make_celery(app)
+#i didn't install celery locally, so just run everything greedy if not productio
+if app.config.get('ENVIRONMENT') != "production":
+    celery.conf.update(CELERY_ALWAYS_EAGER=True)
 
 @app.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
@@ -44,21 +52,17 @@ def get_job_route(job_id):
 def get_jobs_route():
     user = get_user()
     jobs = get_jobs(job_ids=user.get('jobs',[]))
-    return jsonify(jobs=jobs)
+    return jsonify(jobs={x['id']:x for x in jobs})
 
 @app.route('/fetch/', methods=['POST'])
 def fetch():
     user = get_user()
     url = get_submitted_url()
     job = get_new_job(url=url)
-    user['jobs'].append(job['id'])
+    job_id = job['id']
+    user['jobs'].append(job_id)
     update_user(user)
-
-    def bg_cb(sess, resp, job_id):
-        update_job(job_id=job_id, html=resp.text, status='complete')
-
-    cb = partial(bg_cb, job_id=job['id'])
-    future_session.get(url, background_callback=cb)
+    fetch_url.delay(job_id=job_id, url=url)
     return jsonify(job=job)
 
 
@@ -68,6 +72,16 @@ def before_request():
         user_id = db.users.insert({'jobs': []})
         session['user_id'] = str(user_id)
     
+@celery.task()
+def fetch_url(job_id, url):
+    try:
+        resp = requests.get(url)
+        app.logger.info("CELERY TASK COMPLETE FOR: %s", url)
+        update_job(job_id=job_id, html=resp.text, status='complete')
+    except requests.ConnectionError as exception:
+        app.logger.info("CELERY TASK FAILED FOR: %s", url)
+        update_job(job_id=job_id, html=str(exception), status='error')
+        
 
 def get_user():
     # to avoid any fancy login code, just embed a user id into the session
@@ -82,8 +96,6 @@ def update_user(user):
 def get_job(job_id):
     job = db.jobs.find_one({'_id': ObjectId(job_id)}, {'_id': 0})
     return job
-
-
 
 def get_jobs(job_ids):
     jobs = [x for x in db.jobs.find({'_id': {'$in': [ObjectId(y) for y in job_ids]}}, {'_id': 0})]
