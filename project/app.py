@@ -3,11 +3,12 @@ from pymodules.errors import InvalidUsage
 import logging
 import os
 from bson import ObjectId
-from db import db
+from db import create_db
 from cellery_app import make_celery
 from functools import partial
 import requests
 import bs4 as BS
+from datetime import datetime
 
 #define some globals
 JOB_STATUS_FETCHING = 'fetching'
@@ -24,6 +25,9 @@ app.config.update(dict(
     ENVIRONMENT=os.environ.get('ENVIRONMENT', 'local')
 ))
 
+#create db
+db = create_db()
+
 #add logging
 log_handler = logging.StreamHandler()
 log_handler.setFormatter(logging.Formatter(
@@ -35,9 +39,7 @@ app.logger.setLevel(logging.DEBUG)
 #make the celery app
 celery = make_celery(app)
 #i didn't install celery locally, so just run everything greedy if not production
-app.logger.info("BOOTING APP " + str(app.config.get('ENVIRONMENT')))
 if app.config.get('ENVIRONMENT') != 'production':
-    app.logger.info("ALWAYS EAGER")
     celery.conf.update(CELERY_ALWAYS_EAGER=True)
 
 @app.errorhandler(InvalidUsage)
@@ -54,6 +56,11 @@ def get_index():
 @app.route('/job/<job_id>/')
 def get_job_route(job_id):
     job = get_job(job_id=job_id)
+    if job['status'] == JOB_STATUS_FETCHING:
+        o_id = ObjectId(job_id)
+        td = datetime.now(o_id.generation_time.tzinfo) - o_id.generation_time
+        if td.total_seconds() > 15:
+            update_job(job_db=db, job_id=job_id, html="Request Timed Out", status=JOB_STATUS_ERROR)
     return jsonify(job=job)
 
 @app.route('/jobs/')
@@ -82,16 +89,25 @@ def before_request():
     
 @celery.task()
 def fetch_url(job_id, url):
+    #define update_job helper
+    job_db = db if app.config['TESTING'] == True else create_db()
     try:
         resp = requests.get(url)
         app.logger.info("CELERY TASK COMPLETE FOR: %s", url)
         soup = BS.BeautifulSoup(resp.text, 'html.parser')
         html = soup.prettify()
-        update_job(job_id=job_id, html=html, status=JOB_STATUS_COMPLETE)
+        update_job(job_db=job_db,job_id=job_id, html=html, status=JOB_STATUS_COMPLETE)
     except Exception as exception:
         app.logger.info("CELERY TASK FAILED FOR: %s", url)
-        update_job(job_id=job_id, html=str(exception), status=JOB_STATUS_ERROR)
+        update_job(job_db=job_db, job_id=job_id, html=str(exception), status=JOB_STATUS_ERROR)
         
+def update_job(job_db, job_id, status, html):
+    job_db.jobs.update({'_id': ObjectId(job_id)}, {
+        '$set':{
+            'status': status,
+            'html': html,
+        }
+    })
 
 def get_user():
     # to avoid any fancy login code, just embed a user id into the session
@@ -125,13 +141,6 @@ def get_new_job(url):
     #return the blob
     return blob
 
-def update_job(job_id, status, html):
-    db.jobs.update({'_id': ObjectId(job_id)}, {
-        '$set':{
-            'status': status,
-            'html': html,
-        }
-    })
 
 def get_submitted_url():
     data = request.json or request.form
