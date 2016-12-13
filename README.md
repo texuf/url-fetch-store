@@ -59,6 +59,7 @@ or you can uncomment this line in db.py
 
 ### Helpful documentation
 
+* ES6 https://babeljs.io/blog/2015/06/07/react-on-es6-plus
 * Flask/React dev env: https://realpython.com/blog/python/the-ultimate-flask-front-end/  
 * React setup: https://facebook.github.io/react/docs/getting-started.html  
 * React tutorial: http://facebook.github.io/react/docs/tutorial.html  
