@@ -109,6 +109,7 @@ var MainComponent = React.createClass({
     });
     if (job.prettyHtml == null) {
       var self = this;
+      //NOTE rainbow js isn't great - if you call it multiple times at once it just craps out sometimes
       Rainbow.color(job.html, 'html', function (highlighted_code) {
         job.prettyHtml = highlighted_code;
         self.setState({
@@ -136,7 +137,7 @@ var MainComponent = React.createClass({
           { className: 'leftColumn' },
           React.createElement(JobsContainer, {
             jobs: this.state.jobs,
-            appState: this.state.appState,
+            selectedJob: this.state.selectedJob,
             onJobClick: this.handleJobClick,
             parent: this })
         ),
@@ -155,10 +156,10 @@ var JobsContainer = React.createClass({
   displayName: 'JobsContainer',
 
   formatName: function (job) {
-    if (job.status == JobStatus.Fetching) {
-      return job.url + ' (fetching)';
-    }
-    return job.url;
+    var postfix = job.status == JobStatus.Fetching ? ' (fetching)' : job.prettyHtml != null ? ' ✓' : '';
+
+    var prefix = job == this.props.selectedJob ? '> ' : '';
+    return prefix + job.url + postfix;
   },
   render: function () {
     var self = this;
@@ -171,6 +172,7 @@ var JobsContainer = React.createClass({
           'button',
           {
             className: 'jobButton',
+            selected: true,
             onClick: self.props.onJobClick.bind(self.props.parent, key),
             disabled: self.props.jobs[key].status == null || self.props.jobs[key].status == JobStatus.Fetching
           },

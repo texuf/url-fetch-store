@@ -42,17 +42,20 @@ celery = make_celery(app)
 if app.config.get('ENVIRONMENT') != 'production':
     celery.conf.update(CELERY_ALWAYS_EAGER=True)
 
+#error handler
 @app.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
+#index
 @app.route('/', methods=['GET'])
 def get_index():
     user_id = session['user_id']
     return render_template('index.html', user_id=user_id)
 
+#job
 @app.route('/job/<job_id>/', methods=['GET'])
 def get_job_route(job_id):
     job = get_job(job_id=job_id)
@@ -63,12 +66,14 @@ def get_job_route(job_id):
             update_job(job_db=db, job_id=job_id, html="Request Timed Out", status=JOB_STATUS_ERROR)
     return jsonify(job=job)
 
+#jobs
 @app.route('/jobs/', methods=['GET'])
 def get_jobs_route():
     user = get_user()
     jobs = get_jobs(job_ids=user.get('jobs',[]))
     return jsonify(jobs={x['id']: x for x in jobs})
 
+#fetch
 @app.route('/fetch/', methods=['POST'])
 def fetch():
     user = get_user()
@@ -81,13 +86,14 @@ def fetch():
     fetch_url.delay(job_id=job_id, url=url)
     return jsonify(job=job)
 
-
+#before request
 @app.before_request
 def before_request():
     if 'user_id' not in session:
         user_id = db.users.insert({'jobs': []})
         session['user_id'] = str(user_id)
     
+#celery task
 @celery.task()
 def fetch_url(job_id, url):
     #define update_job helper
