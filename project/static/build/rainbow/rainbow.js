@@ -20,7 +20,6 @@
  */
 window['Rainbow'] = function () {
 
-
     /**
      * array of replacements to process at the end
      *

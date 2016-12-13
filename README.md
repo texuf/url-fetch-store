@@ -23,6 +23,17 @@ Create your python virtural env and run
     pip install -r requirements.txt
     ./run.sh
 
+### Local mongo setup
+
+you can install mongodb locally:
+
+    brew install ongo
+    mongod
+
+or you can uncomment this line in db.py
+
+    #os.environ['USE_MONGOMOCK'] = 'true'
+
 ### React Babel Setup
 
     npm install --global babel-cli
