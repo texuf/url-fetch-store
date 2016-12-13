@@ -165,7 +165,8 @@ var JobsContainer = React.createClass({
             <button 
               className="jobButton" 
               onClick={self.props.onJobClick.bind(self.props.parent, key)}
-              disabled={self.props.jobs[key].status == JobStatus.Fetching || self.props.appState == AppState.Parsing}>
+              //disabled={self.props.jobs[key].status == JobStatus.Fetching || self.props.appState == AppState.Parsing}
+              >
               {self.formatName(self.props.jobs[key])}
             </button>
           </div>
@@ -196,7 +197,12 @@ var StatusContainer = React.createClass({
 var LoadingIcon = React.createClass({
   render: function(){
     if(this.props.appState == AppState.Parsing)
-      return (<div className="bearContainer"><img width="172" height="100" src="/static/images/bear.gif"/> </div>)
+      return (
+        <div>
+          <div className="bearContainer"><img width="172" height="100" src="/static/images/bear.gif"/> </div>
+          <div className="bearContainer">beautifying HTML...</div>
+        </div>
+        )
     else
       return (<div/>)
   }
