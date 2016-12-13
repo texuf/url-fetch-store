@@ -76,7 +76,7 @@ def fetch():
     job = get_new_job(url=url)
     job_id = job['id']
     app.logger.info("CELERY TASK START: %s", url)
-    user['jobs'].insert(0, job_id)
+    user['jobs'].append(job_id)
     update_user(user)
     fetch_url.delay(job_id=job_id, url=url)
     return jsonify(job=job)
